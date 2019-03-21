@@ -19,7 +19,7 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class Program {
     // Change to your group authentication token
-    private static String groupToken = "89bbbd1e-e2af-434a-bf19-2cacb3a6f066";
+    private static String groupToken = "ec201a1a-054d-4f8f-a58e-6162f04b3904";
 
     // Change to your protocol implementation
     private static Class<? extends IRoutingProtocol> protocolImpl = MyRoutingProtocol.class;

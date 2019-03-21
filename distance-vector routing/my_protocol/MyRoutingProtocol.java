@@ -3,6 +3,7 @@ package my_protocol;
 import framework.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ public class MyRoutingProtocol implements IRoutingProtocol {
     private DataTable sendDT = new DataTable(7);
     private List<Integer> neighbours = new ArrayList<Integer>();
     private int infinite = 10000;
+    private int toRemove = 0;
+    private boolean change = true;
 
     @Override
     public void init(LinkLayer linkLayer) {
@@ -39,33 +42,56 @@ public class MyRoutingProtocol implements IRoutingProtocol {
     public void tick(PacketWithLinkCost[] packetsWithLinkCosts) {
         // Get the address of this node
         int myAddress = this.linkLayer.getOwnAddress();
-
         System.out.println("tick; received " + packetsWithLinkCosts.length + " packets");
 
         if (packetsWithLinkCosts.length == 0) {
           System.out.println("geen packets, broadcast");
           Packet pkt = new Packet(myAddress, 0, sendDT);
           this.linkLayer.transmit(pkt);
-        } else if (neighbours.size() > packetsWithLinkCosts.length) {
+        } else {//if (neighbours.size() > packetsWithLinkCosts.length) {
           for (PacketWithLinkCost packetCost : packetsWithLinkCosts) {
             int neighbour = packetCost.getPacket().getSourceAddress();
-            if (!neighbours.contains(neighbour)) {
-              myRoutingTable.get(neighbour).cost=infinite;
+            if (neighbours.contains(neighbour)) {
+              neighbours.remove(new Integer(neighbour));
             }
           }
+          // this code does nothing to the score
+          if (!neighbours.isEmpty()) { 
+            change = false;
+            for (Integer toRemove: neighbours) {
+              myRoutingTable.remove(toRemove);
+            }
+            for (Integer key: myRoutingTable.keySet()) {
+              int hop = myRoutingTable.get(key).nextHop;
+              if (neighbours.contains(hop)) {
+                myRoutingTable.remove(key);
+              }
+            }
+          toRemove = neighbours.get(0);
+          // this code does not work for better score
+          // goal of code is to set costs to infinite for all entries with hop or destination 
+          // is equal to the neighbour to "remove"   
+          if (toRemove != 0) {
+            for (int t = 0; t< sendDT.getNColumns(); t++) {
+              sendDT.set(toRemove, t, infinite);
+            }
+            for (int t = 0; t< sendDT.getNRows(); t++) {
+              sendDT.set(t, toRemove, infinite);
+            }
+            toRemove = 0;
+          }
+          }
         }
-
+        
+        neighbours.clear();
         // first process the incoming packets; loop over them:
-        for (int i = 0; i < packetsWithLinkCosts.length; i++) {
+        for (int i = 0; i < packetsWithLinkCosts.length && change; i++) {
             Packet packet = packetsWithLinkCosts[i].getPacket();
             int neighbour = packet.getSourceAddress();             // from whom is the packet?
             int linkcost = packetsWithLinkCosts[i].getLinkCost();  // what's the link cost from/to this neighbour?
-            DataTable receivedDT = packet.getDataTable();                  // other data contained in the packet
-            System.out.printf("received packet from %d with %d rows and %d columns of data%n", neighbour, receivedDT.getNRows(), receivedDT.getNColumns());
- 
-            // you'll probably want to process the data, update your data structures (myRoutingTable) , etc....
-
-            // reading one cell from the DataTable can be done using the  dt.get(row,column)  method
+            DataTable receivedDT = packet.getDataTable();          // other data contained in the packet
+            System.out.printf("received packet from %d with %d rows and %d columns of "
+                + "data%n", neighbour, receivedDT.getNRows(), receivedDT.getNColumns());
 
            //inserting a neighbour route into myRoutingTable:
             if (myRoutingTable.containsKey(neighbour)) {
@@ -88,7 +114,7 @@ public class MyRoutingProtocol implements IRoutingProtocol {
             
             
             // update Routing Table
-            if (neighbour<receivedDT.getNRows()) {
+            if (neighbour<receivedDT.getNRows()&& neighbour != 0) { // 
               for (int g = 1; g<receivedDT.getNColumns();g++) {
                 int costs = receivedDT.get(neighbour, g);
                 if (myRoutingTable.containsKey(g)) {
@@ -110,7 +136,7 @@ public class MyRoutingProtocol implements IRoutingProtocol {
              myRoutingTable.remove(myAddress);
            }
             
-            // make new DataTable or update received one, apparently creates dead code, so:
+            // make new DataTable or update received one
             if (receivedDT.getNRows()==0) {
               System.out.println("receivedDT empty");
               Integer[] leeg = {infinite,infinite,infinite,infinite,infinite,infinite,infinite};
@@ -126,6 +152,23 @@ public class MyRoutingProtocol implements IRoutingProtocol {
               sendDT.set(myAddress, key, myRoutingTable.get(key).cost);
               System.out.println("Change DT");
             }
+            
+            //System.out.println(Arrays.toString(receivedDT.getRow(0)));
+           // System.out.println(Arrays.toString(receivedDT.getRow(1)));
+           // System.out.println(Arrays.toString(receivedDT.getRow(2)));
+          //  System.out.println(Arrays.toString(receivedDT.getRow(3)));
+           // System.out.println(Arrays.toString(receivedDT.getRow(4)));
+           // System.out.println(Arrays.toString(receivedDT.getRow(5)));
+           // System.out.println(Arrays.toString(receivedDT.getRow(6)));
+            System.out.println("----------------------------------");
+            System.out.println(Arrays.toString(sendDT.getRow(0)));
+            System.out.println(Arrays.toString(sendDT.getRow(1)));
+            System.out.println(Arrays.toString(sendDT.getRow(2)));
+            System.out.println(Arrays.toString(sendDT.getRow(3)));
+            System.out.println(Arrays.toString(sendDT.getRow(4)));
+            System.out.println(Arrays.toString(sendDT.getRow(5)));
+            System.out.println(Arrays.toString(sendDT.getRow(6)));
+            
            // send data:
      //        if (myRoutingTable.containsKey(packet.getDestinationAddress())) {
      //          MyRoute route = myRoutingTable.get(packet.getDestinationAddress());
@@ -134,6 +177,7 @@ public class MyRoutingProtocol implements IRoutingProtocol {
      //          System.out.println("send to neighbour");
      //        } 
         }
+        change = true;
         Packet pkt = new Packet(myAddress, 0, sendDT);
         this.linkLayer.transmit(pkt);
         System.out.println("broadcast from node: " + myAddress);
