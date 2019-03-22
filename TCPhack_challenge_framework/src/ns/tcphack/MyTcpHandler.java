@@ -15,7 +15,8 @@ class MyTcpHandler extends TcpHandler {
 		
 		// inet6 2001:67c:2564:a311:8868:5b05:d4d:cb1a prefixlen 64 autoconf temporary 
 		// gerjan ding test
-        InetAddress ipsource = InetAddress.getByName("2001:67c:2564:a311:8868:5b05:d4d:cb1a");
+        InetAddress ipsource = InetAddress.getByName("2001:67c:2564:a183::1");
+             //fe80::3a:13ee:2e6f:49ac");
         byte[] ipBytessource = ipsource.getAddress();
         System.out.println(ipBytessource);
         int[] ipIntsSource = new int[ipBytessource.length];
@@ -33,7 +34,7 @@ class MyTcpHandler extends TcpHandler {
         
         
 		// array of bytes in which we're going to build our packet:
-		int[] txpkt = new int[64];		// 40 bytes long for now, may need to expand this later
+		int[] txpkt = new int[60];		// 40 bytes long for now, may need to expand this later
 
 		/** IPV6 HEADER*/
 		txpkt[0] = 0x60;	// first byte of the IPv6 header contains version number in upper nibble
@@ -42,8 +43,8 @@ class MyTcpHandler extends TcpHandler {
 		txpkt[3] = 0;
 		
 		//payload length
-		txpkt[4] = 00;
-		txpkt[5] = 1;		
+		txpkt[4] = 0;
+		txpkt[5] = 20;		
 		// next header
 		txpkt[6] = 253;
 		// hop limit
@@ -113,10 +114,10 @@ class MyTcpHandler extends TcpHandler {
         txpkt[48] = 0;
         txpkt[49] = 0;
         txpkt[50] = 0;
-        txpkt[51] = 1;
+        txpkt[51] = 0;
         
         // rest
-        txpkt[52] = 0;
+        txpkt[52] = 80;
         txpkt[53] = 2;
         // window size
         txpkt[54] = 0;
@@ -130,10 +131,10 @@ class MyTcpHandler extends TcpHandler {
         txpkt[59] = 0;
         
         // options
-        txpkt[60] = 0;
-        txpkt[61] = 0;
-        txpkt[62] = 0;
-        txpkt[63] = 0;
+       // txpkt[60] = 0;
+       // txpkt[61] = 0;
+       // txpkt[62] = 0;
+       // txpkt[63] = 0;
         
         
         
